@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+:root {
+    --background-error: #fee2e2;
+    --background-warning: #fef9c3;
+    --background-success: #dcfce7;
+    --background-info: #e0f2fe;
+    --background-muted: #f1f5f9;
+}
+
+.bg-background-error {
+    background-color: var(--background-error);
+}
+
+.bg-background-warning {
+    background-color: var(--background-warning);
+}
+
+.bg-background-success {
+    background-color: var(--background-success);
+}
+
+.bg-background-info {
+    background-color: var(--background-info);
+}
+
+.bg-background-muted {
+    background-color: var(--background-muted);
+}
