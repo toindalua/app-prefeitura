@@ -1,135 +1,152 @@
-'use client';
+'use client'
 
-import axios from 'axios';
-import { useLocalSearchParams } from 'expo-router'; // ✅ Corrigido
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { api } from '@/api/config'
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import { router, useLocalSearchParams } from 'expo-router'
+import { useEffect, useState } from 'react'
+import {
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native'
 
-type QuestionOption = {
-  idOption: string;
-  text: string;
-};
+export default function FormAnswerPage() {
+  const { formId } = useLocalSearchParams()
 
-type Question = {
-  idQuestion: string;
-  text: string;
-  type: 'MULTIPLE_CHOICE' | 'CHECKBOXES' | 'SHORT_TEXT' | 'PARAGRAPH';
-  options?: QuestionOption[];
-};
+  const [form, setForm] = useState<any>(null)
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
 
-type FormType = {
-  idForm: string;
-  title: string;
-  description?: string;
-  questions: Question[];
-};
+  async function loadForm() {
+    try {
+      console.log("📡 Carregando formulário:", formId)
 
-export default function FormPage() {
-  const { formId } = useLocalSearchParams<{ formId: string }>(); // ✅ Corrigido
-  const [form, setForm] = useState<FormType | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [answers, setAnswers] = useState<{ [key: string]: string | string[] }>({});
+      const res = await api.get(`/forms/${formId}`)
+
+      console.log("✅ Form carregado:", res.data)
+
+      setForm(res.data)
+
+      const init: any = {}
+      res.data.questions.forEach((q: any) => {
+        init[q.idQuestion] = ""
+      })
+      setAnswers(init)
+
+    } catch (error: any) {
+      console.log("❌ Erro ao carregar formulário:", error.response?.data || error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function sendAnswers() {
+    try {
+      setSending(true)
+
+      console.log("📤 Enviando respostas:", answers)
+
+      const payload = {
+        answers: Object.entries(answers).map(([questionId, value]) => ({
+          questionId,
+          value
+        }))
+      }
+
+      await api.post(`/forms/${formId}/responses`, payload)
+
+      // 🔥 CORREÇÃO AQUI
+      await AsyncStorage.setItem(`answered_${formId}`, "true")
+
+      console.log("✅ Respostas enviadas!")
+      router.back()
+
+    } catch (error: any) {
+      console.log("❌ Erro ao enviar:", error.response?.data || error)
+    } finally {
+      setSending(false)
+    }
+  }
 
   useEffect(() => {
-    if (!formId) return;
-    axios.get(`http://192.168.0.103:4000/forms/${formId}`)
-      .then(res => setForm(res.data))
-      .catch(() => setForm(null))
-      .finally(() => setLoading(false));
-  }, [formId]);
+    loadForm()
+  }, [formId])
 
-  const handleAnswer = (questionId: string, value: string) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: value,
-    }));
-  };
+  if (loading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator size="large" color="blue" />
+      </View>
+    )
+  }
 
-  const handleCheckbox = (questionId: string, value: string) => {
-    setAnswers(prev => {
-      const current = Array.isArray(prev[questionId]) ? prev[questionId] : [];
-      const newValues = current.includes(value)
-        ? current.filter(v => v !== value)
-        : [...current, value];
-      return { ...prev, [questionId]: newValues };
-    });
-  };
-
-  const handleSubmit = () => {
-    console.log('Respostas enviadas:', answers);
-    alert('Respostas registradas localmente (envio real pode ser implementado depois).');
-  };
-
-  if (loading) return <ActivityIndicator size="large" color="#b91c1c" />;
-
-  if (!form) return <Text>Formulário não encontrado</Text>;
+  if (!form) {
+    return (
+      <View className="p-4 bg-white">
+        <Text className="text-blue-600 text-lg font-bold">
+          Erro ao carregar o formulário.
+        </Text>
+      </View>
+    )
+  }
 
   return (
-    <ScrollView className="p-5" keyboardShouldPersistTaps="handled"> {/* ✅ Corrigido */}
-      <Text className="text-2xl font-bold mb-4">{form.title}</Text>
+    <ScrollView className="p-4 bg-white">
 
-      {form.questions.map(q => (
-        <View key={q.idQuestion} className="mb-4 p-4 bg-gray-50 rounded-lg shadow-sm">
-          <Text className="font-medium mb-2">{q.text}</Text>
+      <Text className="text-2xl font-bold mb-3 text-blue-700">
+        {form.title}
+      </Text>
 
-          {/* Múltipla escolha */}
-          {q.type === 'MULTIPLE_CHOICE' && q.options?.map(opt => (
-            <TouchableOpacity
-              key={opt.idOption}
-              onPress={() => handleAnswer(q.idQuestion, opt.idOption)}
-              className="flex-row items-center mb-1"
-            >
-              <Text>
-                {answers[q.idQuestion] === opt.idOption ? '🔘' : '⚪'} {opt.text}
-              </Text>
-            </TouchableOpacity>
-          ))}
+      {form.description && (
+        <Text className="text-gray-700 mb-4">
+          {form.description}
+        </Text>
+      )}
 
-          {/* Checkboxes */}
-          {q.type === 'CHECKBOXES' && q.options?.map(opt => (
-            <TouchableOpacity
-              key={opt.idOption}
-              onPress={() => handleCheckbox(q.idQuestion, opt.idOption)}
-              className="flex-row items-center mb-1"
-            >
-              <Text>
-                {Array.isArray(answers[q.idQuestion]) &&
-                answers[q.idQuestion].includes(opt.idOption)
-                  ? '☑️'
-                  : '⬜'} {opt.text}
-              </Text>
-            </TouchableOpacity>
-          ))}
+      {form.questions.map((q: any, index: number) => (
+        <View key={q.idQuestion} className="mb-6">
 
-          {/* Resposta curta */}
-          {q.type === 'SHORT_TEXT' && (
-            <TextInput
-              className="border border-gray-300 rounded p-2 mt-2"
-              placeholder="Digite sua resposta..."
-              value={answers[q.idQuestion] as string || ''}
-              onChangeText={text => handleAnswer(q.idQuestion, text)}
-            />
-          )}
+          <Text className="text-lg font-semibold mb-2 text-blue-700">
+            {index + 1}. {q.text}
+          </Text>
 
-          {/* Parágrafo */}
-          {q.type === 'PARAGRAPH' && (
-            <TextInput
-              className="border border-gray-300 rounded p-2 mt-2 h-24 text-top"
-              placeholder="Digite sua resposta detalhada..."
-              value={answers[q.idQuestion] as string || ''}
-              multiline
-              onChangeText={text => handleAnswer(q.idQuestion, text)}
-            />
-          )}
+          {q.type === "MULTIPLE_CHOICE" && q.options?.map((op: any) => {
+            const selected = answers[q.idQuestion] === op.text
+            return (
+              <TouchableOpacity
+                key={op.idOption}
+                onPress={() =>
+                  setAnswers({ ...answers, [q.idQuestion]: op.text })
+                }
+                className="p-3 rounded-lg mb-2 border"
+                style={{
+                  backgroundColor: selected ? "#ffdddd" : "white",
+                  borderColor: selected ? "blue" : "#ccc",
+                  borderWidth: 2
+                }}
+              >
+                <Text className="text-black">{op.text}</Text>
+              </TouchableOpacity>
+            )
+          })}
+
         </View>
       ))}
 
       <TouchableOpacity
-        onPress={handleSubmit}
-        className="bg-red-700 rounded-lg py-3 mt-4"
+        onPress={sendAnswers}
+        disabled={sending}
+        className="p-4 rounded-lg mt-4"
+        style={{ backgroundColor: "blue" }}
       >
-        <Text className="text-white text-center font-bold">Enviar respostas</Text>
+        <Text className="text-white text-center font-bold">
+          {sending ? "Enviando..." : "Enviar respostas"}
+        </Text>
       </TouchableOpacity>
+
     </ScrollView>
-  );
+  )
 }

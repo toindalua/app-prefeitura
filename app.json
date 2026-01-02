@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "Voz do Povo",
-    "slug": "Voz do Povo",
+    "name": "Paranavai sem Dor",
+    "slug": "Paranavai sem Dor",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo_g.svg",
+    "icon": "./assets/images/logo.webp",
     "scheme": "vozdopovo",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

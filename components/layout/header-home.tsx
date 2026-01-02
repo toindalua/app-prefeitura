@@ -10,12 +10,12 @@ export default function CustomHeader() {
     const { user, logout } = useAuth();
 
     return (
-        <View style={{ paddingTop: top }} className="bg-red-700 shadow-md justify-center">
+        <View style={{ paddingTop: top }} className="bg-blue-400 shadow-md justify-center">
             <View className="px-5 py-8 flex-row justify-between items-center">
                 {/* Lado Esquerdo: Saudação */}
                 <View className="flex-row items-center">
                     <View className="w-16 h-16 bg-white rounded-full justify-center items-center">
-                        <Text className="text-red-700 text-xl font-bold">
+                        <Text className="text-black-400 text-xl font-bold">
                             {user?.name ? user.name.charAt(0).toUpperCase() : 'R'}
                         </Text>
                     </View>
@@ -27,11 +27,16 @@ export default function CustomHeader() {
 
                 {/* Lado Direito: Ícones */}
                 <View className="flex-row items-center gap-4">
-                    <TouchableOpacity className='w-10 h-10 bg-white rounded-full justify-center items-center' onPress={() => {
-                        logout();
-                    }}>
-                        <FontAwesome5 name="bell" size={20} color="#b91c1c" />
-                    </TouchableOpacity>
+                    <TouchableOpacity 
+                  className='w-10 h-10 bg-white rounded-full justify-center items-center'
+                 onPress={() => {
+                    console.log("Abrir notificações"); 
+                   // Aqui no futuro você coloca: router.push("/notifications")
+                 }}
+>
+    <FontAwesome5 name="bell" size={20} color="rgba(0, 0, 0, 1)" />
+</TouchableOpacity>
+
                     <HeaderMenu />
                 </View>
             </View>

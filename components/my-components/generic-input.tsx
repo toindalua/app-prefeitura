@@ -36,12 +36,12 @@ export const GenericInput: React.FC<GenericInputProps> = ({
 
             {/* Label */}
             <Text className="text-gray-700 font-medium mb-1 pl-3">
-                {label} {isRequired && <Text className="text-red-500">*</Text>}
+                {label} {isRequired && <Text className="text-blue-600">*</Text>}
             </Text>
 
             {/* Input */}
             {/* A borda agora depende da prop 'error' */}
-            <Input variant="underlined" className={`relative px-2 py-1 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-full`}>
+            <Input variant="underlined" className={`relative px-2 py-1 border ${error ? 'border-blue-400' : 'border-gray-300'} rounded-full`}>
                 <InputField
                     type={type === 'password' ? (visible ? 'text' : 'password') : type}
                     placeholder={placeholder}
@@ -74,7 +74,7 @@ export const GenericInput: React.FC<GenericInputProps> = ({
             {error && (
                 <View className="flex flex-row mt-1">
                     {/* <AlertCircleIcon color="$red500" size="xs"/> */}
-                    <Text className="text-red-500 text-sm">{error}</Text>
+                    <Text className="text-blue-400 text-sm">{error}</Text>
                 </View>
             )}
         </View>

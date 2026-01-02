@@ -46,7 +46,7 @@ export default function Login() {
         <VStack className="p-4 space-y-0 bg-white w-full h-full pt-16">
             <View className="mb-8 w-full h-1/3 items-center justify-center">
                 <Image
-                    source={require('assets/images/logo.svg')}
+                    source={require('assets/images/logo.webp')}
                     style={{ width: '90%', height: '100%' }}
                     resizeMode="contain"
                 />

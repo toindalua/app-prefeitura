@@ -1,9 +1,11 @@
-'use client';
+'use client'
 
+import { api } from '@/api/config';
+import { useAuth } from '@/hooks/use-auth';
 import { FontAwesome5 } from '@expo/vector-icons';
-import axios from 'axios';
-import { Link } from 'expo-router'; // Link do Expo Router
-import React, { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Link, useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,10 +14,8 @@ type FormType = {
   title: string;
   description?: string;
   updatedAt: string;
-  responses: number;
 };
 
-// Dados para os ícones de Acesso Rápido
 const quickAccessItems = [
   { icon: 'plus', label: 'Queixas' },
   { icon: 'calendar-alt', label: 'Agendar' },
@@ -23,38 +23,84 @@ const quickAccessItems = [
   { icon: 'pills', label: 'Remédios' },
 ];
 
-const HomeScreen = () => {
+export default function HomeScreen() {
   const [forms, setForms] = useState<FormType[]>([]);
   const [loadingForms, setLoadingForms] = useState(true);
+  const [answered, setAnswered] = useState<Record<string, boolean>>({});
+  const { token } = useAuth();
 
+  // 🔵 Carrega o status "respondido" salvo no AsyncStorage
+  async function loadAnsweredStatus(formList: FormType[]) {
+    const status: Record<string, boolean> = {};
+
+    for (const f of formList) {
+      const key = `answered_${f.idForm}`;
+      const saved = await AsyncStorage.getItem(key);
+      status[f.idForm] = saved === 'true';
+    }
+
+    setAnswered(status);
+  }
+
+  // 🔵 Busca formulários do backend
+  async function fetchForms() {
+    if (!token) return;
+
+    setLoadingForms(true);
+    try {
+      const res = await api.get('/forms/user/my');
+
+      const data = Array.isArray(res.data.fromAssigned) ? res.data.fromAssigned : [];
+
+      const mappedForms: FormType[] = data.map((f: any) => ({
+        idForm: f.idForm,
+        title: f.title,
+        description: f.description,
+        updatedAt: f.updatedAt || f.createdAt,
+      }));
+
+      setForms(mappedForms);
+
+      await loadAnsweredStatus(mappedForms);
+    } catch (err) {
+      console.error('Erro ao buscar formulários:', err);
+      setForms([]);
+    } finally {
+      setLoadingForms(false);
+    }
+  }
+
+  // 🔵 Carrega formulários ao abrir o app
   useEffect(() => {
-    axios
-      .get<FormType[]>('http://192.168.0.103:4000/forms')
-      .then(res => setForms(res.data))
-      .catch(err => {
-        console.error('Erro ao buscar formulários:', err);
-        setForms([]);
-      })
-      .finally(() => setLoadingForms(false));
-  }, []);
+    fetchForms();
+  }, [token]);
+
+  // 🔥 Atualiza ao voltar para HOME (após responder)
+  useFocusEffect(
+    useCallback(() => {
+      if (forms.length > 0) {
+        loadAnsweredStatus(forms);
+      }
+    }, [forms])
+  );
 
   return (
-    <View className="bg-red-700 flex-1">
+    <View className="bg-blue-400 flex-1">
       <SafeAreaView className="flex-1 bg-gray-50 rounded-s-3xl">
-        <StatusBar barStyle="light-content" backgroundColor="#b91c1c" />
+        <StatusBar barStyle="light-content" backgroundColor="rgba(33, 143, 216, 1)" />
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
           <View className="px-5">
 
-            {/* Card: Acesso Rápido */}
+            {/* Acesso rápido */}
             <View>
               <Text className="text-lg font-bold text-gray-800 mb-4">Acesso Rápido</Text>
               <View className="flex-row justify-around">
                 {quickAccessItems.map(item => (
                   <TouchableOpacity key={item.label} className="items-center">
-                    <View className="bg-red-50 w-16 h-16 rounded-full justify-center items-center relative">
-                      <FontAwesome5 name={item.icon as any} size={24} color="#c53030" />
+                    <View className="bg-blue-50 w-16 h-16 rounded-full justify-center items-center relative">
+                      <FontAwesome5 name={item.icon as any} size={24} color="rgba(33, 143, 216, 1)" />
                       <View className="absolute top-0">
-                        <Text className="text-xs text-red-600 font-bold">Em breve</Text>
+                        <Text className="text-xs text-black-600 font-bold">Em breve</Text>
                       </View>
                     </View>
                     <Text className="mt-2 text-sm text-gray-600 font-medium">{item.label}</Text>
@@ -63,64 +109,54 @@ const HomeScreen = () => {
               </View>
             </View>
 
-            {/* Seção: Formulários */}
+            {/* Lista */}
             <View className="mt-8">
               <View className="flex-row justify-between items-center mb-3">
                 <Text className="text-lg font-bold text-gray-800">Formulários</Text>
-                <TouchableOpacity>
-                  <Text className="text-red-700 font-semibold">Ver todos</Text>
-                </TouchableOpacity>
               </View>
 
               {loadingForms ? (
-                <ActivityIndicator size="large" color="#b91c1c" style={{ marginTop: 20 }} />
+                <ActivityIndicator size="large" color="rgba(33, 143, 216, 1)" style={{ marginTop: 20 }} />
               ) : forms.length === 0 ? (
                 <Text>Nenhum formulário encontrado.</Text>
               ) : (
-                forms.map(form => (
-                  <View key={form.idForm} className="bg-white rounded-xl p-5 shadow-md mb-4">
-                    <View className="flex-row justify-between items-start">
-                      <Text className="text-lg font-bold text-gray-900 flex-1 pr-2">
-                        {form.title}
-                      </Text>
-                      <Text className="text-md text-gray-500">
-                        {new Date(form.updatedAt).toLocaleDateString()}
-                      </Text>
-                    </View>
-                    {form.description ? (
-                      <Text className="text-gray-600 mt-2">{form.description}</Text>
-                    ) : null}
+                forms.map(form => {
+                  const alreadyAnswered = answered[form.idForm];
 
-                        <Link href={`/home/forms/${form.idForm}` as any} asChild>
-                        <TouchableOpacity className="bg-red-700 rounded-lg py-3 mt-4">
-                       <Text className="text-white text-center font-bold">Iniciar</Text>
-                       </TouchableOpacity>
+                  return (
+                    <View key={form.idForm} className="bg-white rounded-xl p-5 shadow-md mb-4">
+                      <View className="flex-row justify-between items-start">
+                        <Text className="text-lg font-bold text-gray-900 flex-1 pr-2">
+                          {form.title}
+                        </Text>
+                        <Text className="text-md text-gray-500">
+                          {new Date(form.updatedAt).toLocaleDateString()}
+                        </Text>
+                      </View>
+
+                      {form.description ? (
+                        <Text className="text-gray-600 mt-2">{form.description}</Text>
+                      ) : null}
+
+                      {/* BOTÕES */}
+                      {alreadyAnswered ? (
+                        <TouchableOpacity
+                          disabled
+                          className="bg-gray-400 rounded-lg py-3 mt-4"
+                        >
+                          <Text className="text-white text-center font-bold">Respondido</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <Link href={`/home/forms/${form.idForm}`} asChild>
+                          <TouchableOpacity className="bg-blue-500 rounded-lg py-3 mt-4">
+                            <Text className="text-white text-center font-bold">Iniciar</Text>
+                          </TouchableOpacity>
                         </Link>
-
-
- 
-                  </View>
-                ))
+                      )}
+                    </View>
+                  );
+                })
               )}
-            </View>
-
-            {/* Botão: Agendar uma consulta */}
-            <TouchableOpacity className="bg-gray-200 rounded-2xl p-4 mt-6 flex-row items-center justify-center shadow-sm">
-              <FontAwesome5 name="calendar-alt" size={22} color="#4A5568" />
-              <Text className="text-gray-700 font-bold text-base ml-3">Agendar uma consulta</Text>
-            </TouchableOpacity>
-
-            {/* Seção: Acompanhamentos */}
-            <View className="mt-8">
-              <View className="flex-row justify-between items-center mb-3">
-                <Text className="text-lg font-bold text-gray-800">Acompanhamentos</Text>
-                <TouchableOpacity>
-                  <Text className="text-red-700 font-semibold">Ver todos</Text>
-                </TouchableOpacity>
-              </View>
-              <View className="bg-white rounded-2xl p-4 shadow-md h-32">
-                {/* Conteúdo dos acompanhamentos viria aqui */}
-              </View>
             </View>
 
           </View>
@@ -128,6 +164,4 @@ const HomeScreen = () => {
       </SafeAreaView>
     </View>
   );
-};
-
-export default HomeScreen;
+}

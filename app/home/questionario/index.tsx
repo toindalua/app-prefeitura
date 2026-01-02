@@ -16,7 +16,7 @@ export default function FormQuestionsPage({ params }: { params: { form: string }
       .finally(() => setLoading(false));
   }, [form]);
 
-  if (loading) return <ActivityIndicator size="large" color="#b91c1c" style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} />;
+  if (loading) return <ActivityIndicator size="large" color="rgba(33, 143, 216, 1)" style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} />;
 
   if (!formData) return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
